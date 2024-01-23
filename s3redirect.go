@@ -28,9 +28,31 @@ func presignedURL(bucket string, key string) (string, error) {
 	return req.Presign(15 * time.Minute)
 }
 
+func headPresignedURL(bucket string, key string) (string, error) {
+	req, _ := svc.HeadObjectRequest(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+
+	return req.Presign(15 * time.Minute)
+}
+
 func redirectHandler(bucket string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		url, err := presignedURL(bucket, r.URL.Path[1:])
+		var (
+			url string
+			err error
+		)
+		switch r.Method {
+		case "HEAD":
+			url, err = headPresignedURL(bucket, r.URL.Path[1:])
+		case "GET":
+			url, err = presignedURL(bucket, r.URL.Path[1:])
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
