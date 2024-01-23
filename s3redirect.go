@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	svc    *s3.S3
-	bucket string
-	region string
+	svc     *s3.S3
+	bucket  string
+	region  string
+	address string
 )
 
 func presignedURL(bucket string, key string) (string, error) {
@@ -41,6 +42,7 @@ func redirectHandler(bucket string) http.HandlerFunc {
 func run() error {
 	flag.StringVar(&bucket, "bucket", "", "S3 bucket name")
 	flag.StringVar(&region, "region", "eu-central-1", "AWS region")
+	flag.StringVar(&address, "address", ":8080", "Address to listen on")
 	flag.Parse()
 
 	sess, err := session.NewSession(&aws.Config{
@@ -57,8 +59,8 @@ func run() error {
 	}
 
 	http.HandleFunc("/", redirectHandler(bucket))
-	fmt.Fprintf(os.Stderr, "Starting server on :8080, serving %s\n", bucket)
-	return http.ListenAndServe(":8080", nil)
+	fmt.Fprintf(os.Stderr, "Starting server on %s, serving %s\n", address, bucket)
+	return http.ListenAndServe(address, nil)
 }
 
 func main() {
